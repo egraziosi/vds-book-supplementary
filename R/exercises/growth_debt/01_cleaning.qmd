@@ -28,25 +28,126 @@ editor_options:
 
 ## Step 1: Review background information {#sec-bg-info}
 
+The debt data is showing the debt % of GDP of each country and the growth data is showing the GDP growth of each country
 
 ### Data dictionary
 
 
 ## Step 2: Loading in the data
 
+library(tidyverse)
+library(readxl)
+
+
+debt <- read_excel("C:/Users/ericg/Downloads/debt.xls")
+growth <- read_excel("C:/Users/ericg/Downloads/growth.xlsx")
 
 ## Step 3: Examine the data and create action items
 
 ### Finding invalid values
 
+debt_1960 <- debt |>
+  select(`DEBT (% of GDP)`, `1960`:`2015`)
+debt_1960
+
+growth_1960 <- growth |>
+  select(`Country Name`, `Country Code`, `Indicator Name`, `Indicator Code`,
+         `1960.0`:`2025.0`)
+growth_1960
 
 ### Assessing Column names
 
+names(debt)
+names(growth)
+colnames(debt)
+colnames(growth)
 
 
 ### Assessing variable type
 
+glimpse(debt)
+glimpse(growth)
+str(debt)
+str(growth)
 
 ### Assessing data completeness
 
-## Step 4: Clean and pre-process the data
+colSums(is.na(debt))
+colSums(is.na(growth))
+sum(duplicated(data))
+sum(duplicated(growth))
+
+## Step 4: Clean and pre-process the data  (Question 4b)
+
+clean_debt <- function(debt) {
+  
+  debt_clean <- debt |>
+     filter(`DEBT (% of GDP)` == "Australia") |>
+    select(`DEBT (% of GDP)`, `1960`:`1969`) |>
+    pivot_longer(
+      cols = `1960`:`1969`,
+      names_to = "Year",
+      values_to = "Debt"
+    ) |>
+    mutate(
+      Year = as.numeric(Year),
+      Debt = na_if(Debt, "no data"),
+      Debt = as.numeric(Debt)
+    )
+  
+  return(debt_clean)
+}
+
+
+debt_clean <- clean_debt(debt)
+debt_clean
+
+
+clean_growth <- function(growth) {
+  
+  growth_clean <- growth |>
+    filter(`Country Name` == "Australia") |>
+    select(`Country Name`, `1960.0`:`1969.0`) |>
+    pivot_longer(
+      cols = `1960.0`:`1969.0`,
+      names_to = "Year",
+      values_to = "Growth"
+    ) |>
+    mutate(
+      Year = as.numeric(Year),
+      Growth = as.numeric(Growth)
+    )
+  
+  return(growth_clean)
+}
+
+
+growth_clean<- clean_growth(growth)
+growth_clean
+
+
+Question 4c
+
+
+pre_process <- function(debt_clean, growth_clean) {
+  
+  combined <- debt_clean |>
+    rename(
+      Country = `DEBT (% of GDP)`,
+      debt_pct_gdp = Debt
+    ) |>
+    inner_join(
+      growth_clean |>
+        rename(
+          Country = `Country Name`,
+          growth_pct_gdp = Growth
+        ),
+      by = c("Country", "Year")
+    ) |>
+    select(Country, Year, debt_pct_gdp, growth_pct_gdp)
+  
+  return(combined)
+}
+
+joined<- pre_process(debt_clean, growth_clean)
+joined
